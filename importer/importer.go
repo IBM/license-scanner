@@ -81,29 +81,28 @@ func AddAllSPDXTemplates(cfg *viper.Viper) error {
 		return err
 	}
 
-	if err := os.WriteFile(path.Join(jsonDestDir, "licenses.json"), SPDXLicenseListBytes, 0o666); err != nil { //nolint:gosec
+	if err := os.WriteFile(path.Join(jsonDestDir, "licenses.json"), SPDXLicenseListBytes, 0o600); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path.Join(jsonDestDir, "exceptions.json"), SPDXExceptionsListBytes, 0o666); err != nil { //nolint:gosec
+	if err := os.WriteFile(path.Join(jsonDestDir, "exceptions.json"), SPDXExceptionsListBytes, 0o600); err != nil {
 		return err
 	}
 
+	errorCount := 0
 	for _, de := range templateDEs {
 		templateName := de.Name()
 		id := strings.TrimSuffix(templateName, ".template.txt")
 		templateFile := path.Join(templateSrcDir, templateName)
 		textFile := path.Join(textSrcDir, id+".txt")
 
-		isValid, err := ValidateSPDXTemplateWithLicenseText(id, templateFile, textFile, templateDestDir, preCheckDestDir, textDestDir)
-		if err != nil {
-			return fmt.Errorf("validation failed for template ID %v: %w", id, err)
-		}
-		if !isValid {
+		if err := ValidateSPDXTemplateWithLicenseText(id, templateFile, textFile, templateDestDir, preCheckDestDir, textDestDir); err != nil {
 			_ = Logger.Errorf("template ID %v is not valid", id)
-			continue
+			errorCount++
 		}
 	}
-
+	if errorCount > 0 {
+		return fmt.Errorf("%v templates could not be validated", errorCount)
+	}
 	return nil
 }
 
