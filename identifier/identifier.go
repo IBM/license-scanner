@@ -174,9 +174,22 @@ func findAllLicensesInNormalizedData(licenseLibrary *licenses.LicenseLibrary, no
 		if err != nil {
 			return ret, err
 		}
-		for _, m := range matches {
-			licensesMatched = append(licensesMatched, licenseMatch{LicenseId: id, Match: m})
-			ret.Matches[id] = append(ret.Matches[id], m)
+
+		// Sort the matches slice by start and end index.
+		sort.Slice(matches, func(i, j int) bool {
+			if matches[i].Begins != matches[j].Begins {
+				return matches[i].Begins < matches[j].Begins
+			} else {
+				return matches[i].Ends < matches[j].Ends
+			}
+		})
+
+		for i := range matches {
+			if i > 0 && matches[i] == matches[i-1] {
+				continue // remove duplicates
+			}
+			licensesMatched = append(licensesMatched, licenseMatch{LicenseId: id, Match: matches[i]})
+			ret.Matches[id] = append(ret.Matches[id], matches[i])
 		}
 	}
 
@@ -454,15 +467,6 @@ func generateTextBlocks(originalText string, matches []licenseMatch) ([]Block, e
 	if len(matches) == 0 {
 		return []Block{{Text: originalText}}, nil
 	}
-
-	// Sort the matches by start and end index.
-	sort.Slice(matches, func(i, j int) bool {
-		if matches[i].Match.Begins != matches[j].Match.Begins {
-			return matches[i].Match.Begins < matches[j].Match.Begins
-		} else {
-			return matches[i].Match.Ends < matches[j].Match.Ends
-		}
-	})
 
 	var blocks []Block
 	lastEnd := 0
