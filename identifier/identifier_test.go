@@ -301,8 +301,8 @@ func Test_identifyLicensesInString(t *testing.T) {
 			want: IdentifierResults{
 				Matches: map[string][]Match{
 					"MIT": {
-						{Begins: 37, Ends: 597},
 						{Ends: 1058},
+						{Begins: 37, Ends: 597},
 						{Begins: 599, Ends: 1058},
 					},
 				},
@@ -534,6 +534,19 @@ func Test_identifyLicensesInStringPreChecks(t *testing.T) {
 		input      string
 		want       IdentifierResults
 	}{
+		{
+			name:       "duplicate matches",
+			configPath: "../testdata/duplicates/",
+			input:      "whatever noprechecktext whatever passes",
+			want: IdentifierResults{
+				Matches: map[string][]Match{"DuplicateMatchTest": {{Begins: 9, Ends: 22}}},
+				Blocks: []Block{
+					{Text: "whatever "},
+					{Text: "noprechecktext", Matches: []string{"DuplicateMatchTest"}},
+					{Text: " whatever passes"},
+				},
+			},
+		},
 		{
 			name:       "no prechecks matches template",
 			configPath: "../testdata/prechecks/no_prechecks/",

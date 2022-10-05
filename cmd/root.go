@@ -184,17 +184,6 @@ func findLicensesInFile(cfg *viper.Viper, f string) error {
 	licenseArg := cfg.GetString(configurer.LicenseFlag)
 	if len(results.Matches) > 0 {
 
-		// Sort the matches by start and end index for each license ID
-		for _, match := range results.Matches {
-			sort.Slice(match, func(i, j int) bool {
-				if match[i].Begins != match[j].Begins {
-					return match[i].Begins < match[j].Begins
-				} else {
-					return match[i].Ends < match[j].Ends
-				}
-			})
-		}
-
 		// Print the matches by license ID in alphabetical order
 		fmt.Printf("\nFOUND LICENSE MATCHES:\n")
 		var found []string
