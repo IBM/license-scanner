@@ -510,6 +510,8 @@
 | ID | Name | Family | Templates |
 | :--- | :--- | :--- | ---: |
 ## Runtime Configuration
-* resources: /Users/markstur/go/src/github.com/ibm/license-scanner/resources
-  * spdx/default
+* resources: /Users/example/go/src/github.com/ibm/license-scanner/resources
+  * spdx/default  (SPDX license list 3.18)
   * custom/default
+
+###### Generated on 2022-10-05T21:48:44-07:00
