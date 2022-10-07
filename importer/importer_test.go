@@ -19,9 +19,9 @@ func TestImporter_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "BlueOak-1.0.0 omitable line prefix ## needs to be normalized like line comment",
+			name:    "BlueOak-1.0.0 fixed omitable line prefix ## needs to be normalized like line comment",
 			id:      "BlueOak-1.0.0",
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "CC-BY-3.0 space before comma",

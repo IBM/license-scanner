@@ -24,8 +24,10 @@ const (
 	OptionalWildcardMatchingPattern = `<<match=\.\*>>`
 
 	ReplaceableTextPattern     = `(?i)<<(?:var;(?:name=(.+?);)?(?:original=(.*?);)?)?match=(.+?)>>`
+	BeginOptionalLinePattern   = `(?im)^<<beginOptional(?:;name=.*?)?>>`
 	BeginOptionalPattern       = `(?i)<<beginOptional(?:;name=.*?)?>>`
-	ReplaceBeginPattern        = `<<omitable>>`
+	OmitableLine               = "<<omitable>>\n"
+	Omitable                   = "<<omitable>>"
 	EndOptionalPattern         = `(?i)<<endOptional>>`
 	ReplaceEndPattern          = `<</omitable>>`
 	CommentBlockOutsidePattern = `(?m)^\s*(?:/\*|-{2,3}\[=*\[)|(?:\*/|]=*])\s*$`
@@ -53,6 +55,7 @@ var (
 	NoteTagPatternRE                  = regexp.MustCompile(NoteTagPattern)
 	WildcardMatchingPatternRE         = regexp.MustCompile(WildcardMatchingPattern)
 	OptionalWildcardMatchingPatternRE = regexp.MustCompile(OptionalWildcardMatchingPattern)
+	BeginOptionalLinePatternRE        = regexp.MustCompile(BeginOptionalLinePattern)
 	BeginOptionalPatternRE            = regexp.MustCompile(BeginOptionalPattern)
 	EndOptionalPatternRE              = regexp.MustCompile(EndOptionalPattern)
 	HorizontalRulePatternRE           = regexp.MustCompile(HorizontalRulePattern)
@@ -340,7 +343,8 @@ func (n *NormalizationData) captureReplaceableTextSections() {
 }
 
 func (n *NormalizationData) standardizeOmitableTags() {
-	n.regexpReplacePatternAndUpdateIndexMap(BeginOptionalPatternRE, ReplaceBeginPattern)
+	n.regexpReplacePatternAndUpdateIndexMap(BeginOptionalLinePatternRE, OmitableLine) // Allows other $(m)^ matches
+	n.regexpReplacePatternAndUpdateIndexMap(BeginOptionalPatternRE, Omitable)
 	n.regexpReplacePatternAndUpdateIndexMap(EndOptionalPatternRE, ReplaceEndPattern)
 }
 
