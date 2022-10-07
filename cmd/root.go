@@ -181,7 +181,7 @@ func findLicensesInDirectory(cfg *viper.Viper) error {
 		if len(result.Matches) > 0 {
 
 			// Print the matches by license ID in alphabetical order
-			fmt.Printf("\nFOUND LICENSE MATCHES:\n")
+			fmt.Printf("\nFOUND LICENSE MATCHES: %v\n", result.File)
 			var found []string
 			for id := range result.Matches {
 				found = append(found, id)
@@ -207,7 +207,7 @@ func findLicensesInDirectory(cfg *viper.Viper) error {
 				}
 			}
 		} else {
-			ProjectLogger.Info("No licenses were found")
+			fmt.Printf("\nNo licenses were found: %v\n", result.File)
 		}
 	}
 	return nil
