@@ -90,8 +90,9 @@ Flags:
       --configName string   Base name for config file (default "config")
       --configPath string   Path to any config files
   -c, --copyrights          Flag copyrights
-      --custom string       Custom templates to use (default "..")
+      --custom string       Custom templates to use (default "default")
   -d, --debug               Enable debug logging
+      --dir string          A directory in which to identify licenses
   -f, --file string         A file in which to identify licenses
   -x, --hash                Output file hash
   -h, --help                help for license-scanner
@@ -100,7 +101,7 @@ Flags:
       --list                List the license templates to be used
   -n, --normalized          Flag normalized
   -q, --quiet               Set logging to quiet
-      --spdx string         SPDX templates to use (default "3.18")
+      --spdx string         SPDX templates to use (default "default")
 ```
 
 ### Example CLI usage
@@ -364,11 +365,13 @@ In help mode, all other flags are ignored.
 
 ### Scan mode
 
-When running `license_scanner -f <input_file>` the input file is scanned for license matches.
+When running `license_scanner --file <input_file>` the input file is scanned for license matches.
+When running `license_scanner --dir <input_dir>` the input directory is recursively scanned for license matches.
 
-| Name   | Shorthand | Type   | Usage                               |
-|--------|-----------|--------|-------------------------------------|
-| -file  | --f | string | A file in which to identify licenses |
+| Name   | Shorthand | Type   | Usage                                     |
+|--------|-----------|--------|-------------------------------------------|
+| --file | -f        | string | A file in which to identify licenses      |
+| --dir  |           | string | A directory in which to identify licenses |
 
 The following **optional** runtime flags may be used to modify and enhance the behavior:
 

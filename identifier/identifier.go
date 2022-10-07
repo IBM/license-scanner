@@ -4,8 +4,10 @@ package identifier
 
 import (
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -117,43 +119,68 @@ func IdentifyLicensesInFile(filePath string, options Options, licenseLibrary *li
 	input := string(b)
 
 	result, err := IdentifyLicensesInString(input, options, licenseLibrary)
-	if err != nil {
-		return result, err
-	}
-
-	if options.ForceResult || len(result.Matches) > 0 || len(result.KeywordMatches) > 0 {
-		result.File = filePath
-		return result, nil
-	} else {
-		return result, nil // result is not interesting
-	}
+	result.File = filePath
+	return result, err
 }
 
-func identifyLicensesInDirectory(dirPath string, options Options, licenseLibrary *licenses.LicenseLibrary) ([]IdentifierResults, error) { // nolint:unused
+func IdentifyLicensesInDirectory(dirPath string, options Options, licenseLibrary *licenses.LicenseLibrary) (ret []IdentifierResults, err error) {
+	var lfs []string
 
-	var results []IdentifierResults
-
-	files, err := ioutil.ReadDir(dirPath)
-	if err != nil {
+	if err := filepath.WalkDir(dirPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if !d.IsDir() {
+			info, _ := d.Info()
+			if info.Size() > 0 {
+				lfs = append(lfs, path)
+			}
+		}
+		return nil
+	}); err != nil {
+		fmt.Printf("error walking the path %v: %v\n", dirPath, err)
 		return nil, err
 	}
 
-	for _, file := range files {
-		if file.IsDir() {
-			result, err := identifyLicensesInDirectory(file.Name(), options, licenseLibrary)
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, result...)
-		} else {
-			result, err := IdentifyLicensesInFile(file.Name(), options, licenseLibrary)
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, result)
+	// errGroup to do the work in parallel until error
+	workers := errgroup.Group{}
+	workers.SetLimit(10)
+	ch := make(chan IdentifierResults, 10)
+
+	// WaitGroup to know when we have all the results
+	waitForResults := sync.WaitGroup{}
+	waitForResults.Add(1)
+
+	// Start receiving the results until channel closes
+	go func() {
+		for ir := range ch {
+			ret = append(ret, ir)
 		}
+		waitForResults.Done()
+	}()
+
+	// Loop using a worker to send results to a channel
+	for _, lf := range lfs {
+		lf := lf
+		workers.Go(func() error {
+			ir, err := IdentifyLicensesInFile(lf, options, licenseLibrary)
+			if err == nil {
+				ch <- ir
+			}
+			return err
+		})
 	}
-	return results, nil
+
+	// Close the channel when done or error
+	go func() {
+		err = workers.Wait()
+		close(ch)
+	}()
+
+	// Make sure we got all the results
+	waitForResults.Wait()
+	return ret, err
 }
 
 func findAllLicensesInNormalizedData(licenseLibrary *licenses.LicenseLibrary, normalizedData normalizer.NormalizationData) (IdentifierResults, error) {

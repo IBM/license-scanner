@@ -81,6 +81,8 @@ Please give us feedback at: https://github.com/IBM/license-scanner/issues
 			f := cfg.GetString(configurer.FileFlag)
 			if f != "" {
 				return findLicensesInFile(cfg, f)
+			} else if cfg.GetString(configurer.DirFlag) != "" {
+				return findLicensesInDirectory(cfg)
 			} else if cfg.GetBool(configurer.ListFlag) {
 				return listLicenses(cfg)
 			} else if cfg.GetString(configurer.AddAllFlag) != "" {
@@ -145,6 +147,69 @@ func listLicenses(cfg *viper.Viper) error {
 	fmt.Printf("* resources: %v\n", cfg.GetString("resources"))
 	fmt.Printf("  * spdx/%v\n", cfg.GetString(configurer.SpdxFlag))
 	fmt.Printf("  * custom/%v\n", cfg.GetString(configurer.CustomFlag))
+	return nil
+}
+
+func findLicensesInDirectory(cfg *viper.Viper) error {
+	d := cfg.GetString(configurer.DirFlag)
+
+	licenseLibrary, err := licenses.NewLicenseLibrary(cfg)
+	if err != nil {
+		return err
+	}
+	if err := licenseLibrary.AddAll(); err != nil {
+		return err
+	}
+
+	options := identifier.Options{
+		ForceResult: true,
+		Enhancements: identifier.Enhancements{
+			AddNotes:       "",
+			AddTextBlocks:  true,
+			FlagAcceptable: cfg.GetBool(configurer.AcceptableFlag),
+			FlagCopyrights: cfg.GetBool(configurer.CopyrightsFlag),
+			FlagKeywords:   cfg.GetBool(configurer.KeywordsFlag),
+		},
+	}
+
+	results, err := identifier.IdentifyLicensesInDirectory(d, options, licenseLibrary)
+	if err != nil {
+		return err
+	}
+
+	for _, result := range results {
+		if len(result.Matches) > 0 {
+
+			// Print the matches by license ID in alphabetical order
+			fmt.Printf("\nFOUND LICENSE MATCHES:\n")
+			var found []string
+			for id := range result.Matches {
+				found = append(found, id)
+			}
+			sort.Strings(found)
+			for _, id := range found {
+				fmt.Printf("\tLicense ID:\t%v", id)
+				fmt.Println()
+				var prev identifier.Match
+				for _, m := range result.Matches[id] {
+					// Print if not same as prev
+					if m != prev {
+						fmt.Printf("\t\tbegins: %5v\tends: %5v\n", m.Begins, m.Ends)
+						prev = m
+					}
+				}
+			}
+			fmt.Println()
+
+			if ProjectLogger.GetLevel() >= log.INFO {
+				for _, block := range result.Blocks {
+					ProjectLogger.Infof("%v :: %v", block.Matches, block.Text)
+				}
+			}
+		} else {
+			ProjectLogger.Info("No licenses were found")
+		}
+	}
 	return nil
 }
 

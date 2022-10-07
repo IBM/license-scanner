@@ -7,13 +7,10 @@ package identifier
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/IBM/license-scanner/configurer"
 
 	"github.com/IBM/license-scanner/licenses"
 )
@@ -24,37 +21,59 @@ const (
 )
 
 var testDataDir = path.Join(resources, "spdx", spdx, "testdata")
+var options = Options{
+	ForceResult: false,
+	Enhancements: Enhancements{
+		AddNotes:       "",
+		AddTextBlocks:  true,
+		FlagAcceptable: false,
+		FlagCopyrights: true,
+		FlagKeywords:   false,
+	},
+}
 
-func Test_identifyLicensesInSPDXTestData(t *testing.T) {
-	if _, err := os.Stat(testDataDir); os.IsNotExist(err) {
-		// Skip test if this data isn't in place (in repo) yet. Else continue for identify errors.
-		t.Skipf("Skipping test with optional resources: %v", resources)
-	}
-
-	config, err := configurer.InitConfig(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.Set("resources", resources) // override
-	config.Set("spdx", spdx)           // override
-
-	licenseLibrary, err := licenses.NewLicenseLibrary(config)
+func Test_identifyLicensesInSPDXTestDataDirectory(t *testing.T) {
+	t.Parallel()
+	licenseLibrary, err := licenses.NewLicenseLibrary(nil)
 	if err != nil {
 		t.Fatalf("NewLicenseLibrary() error = %v", err)
 	}
 	if err := licenseLibrary.AddAllSPDX(); err != nil {
-		t.Fatalf("licenseLibrary.AddAll() error = %v", err)
+		t.Fatalf("licenseLibrary.AddAllSPDX() error = %v", err)
 	}
 
-	options := Options{
-		ForceResult: false,
-		Enhancements: Enhancements{
-			AddNotes:       "",
-			AddTextBlocks:  true,
-			FlagAcceptable: false,
-			FlagCopyrights: true,
-			FlagKeywords:   false,
-		},
+	results, err := IdentifyLicensesInDirectory(testDataDir, options, licenseLibrary)
+	if err != nil {
+		t.Errorf("IdentifyLicensesInDirectory(%v) err = %v", testDataDir, err)
+	}
+
+	const expected = 499
+	if actual := len(results); actual != expected {
+		t.Errorf("IdentifyLicensesInDirectory(%v) len(results) expected %v actual: %v", testDataDir, expected, actual)
+	}
+
+	for _, result := range results {
+		result := result
+		t.Run(result.File, func(t *testing.T) {
+			t.Parallel()
+			wantLicenseID := strings.TrimSuffix(path.Base(result.File), ".txt")
+			wantLicenseID = strings.TrimPrefix(wantLicenseID, "deprecated_")
+			if _, ok := result.Matches[wantLicenseID]; !ok {
+				t.Error("Did not get: ", wantLicenseID)
+			}
+		})
+	}
+}
+
+func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
+	t.Parallel()
+
+	licenseLibrary, err := licenses.NewLicenseLibrary(nil)
+	if err != nil {
+		t.Fatalf("NewLicenseLibrary() error = %v", err)
+	}
+	if err := licenseLibrary.AddAllSPDX(); err != nil {
+		t.Fatalf("licenseLibrary.AddAllSPDX() error = %v", err)
 	}
 
 	type tf struct {
