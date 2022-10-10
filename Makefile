@@ -1,6 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
-SHELL:=/bin/bash
+SHELL:=/bin/bash -o pipefail
+
+MK_TEMP=$(shell mktemp)
+SET_OUTPUT=$(eval OUTPUT=$(MK_TEMP))
+
+.PHONY: build
+build: ## Build
+	@echo =============================
+	@echo ==== Running Build =====
+	@echo =============================
+	go build ./...
 
 .PHONY: test
 test: ## Run all the tests.
@@ -8,6 +18,16 @@ test: ## Run all the tests.
 	@echo ==== Running Unit Tests =====
 	@echo =============================
 	go test ./... -tags=unit -count=1
+
+.PHONY: test-verbose
+test-verbose: ## Run all the tests.
+	@echo =====================================
+	@echo ==== Running Unit Tests Verbose =====
+	@echo =====================================
+	$(SET_OUTPUT)
+	@echo "...FAILURES..." > ${OUTPUT}
+	go test -v ./... -tags=unit -count=1 | tee -a ${OUTPUT} || (err=$$?; grep "FAIL" ${OUTPUT} || true; rm ${OUTPUT} && exit $$err)
+	@rm ${OUTPUT}
 
 .PHONY: cover
 cover: ## Run the code coverage
