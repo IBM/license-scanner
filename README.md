@@ -403,6 +403,8 @@ Since you may have multiple locations for resources and multiple SPDX and custom
 * Resource flags: **--spdx, --custom**
 * Config file location (used to locate resources): **--configPath, --configName**
 
+Example license library listing: [resources/LIST.md](resources/LIST.md)
+
 ## Runtime flags
 
 ### Resource flags

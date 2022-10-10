@@ -62,6 +62,7 @@ var (
 )
 
 type LicenseLibrary struct {
+	SPDXVersion               string
 	LicenseMap                LicenseMap
 	PrimaryPatternPreCheckMap PrimaryPatternPreCheckMap
 	AcceptablePatternsMap     PatternsMap
@@ -253,7 +254,7 @@ func (l License) GetID() string {
 	}
 }
 
-func (ll LicenseLibrary) AddAll() error {
+func (ll *LicenseLibrary) AddAll() error {
 	if err := ll.AddAllSPDX(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		// not exist is okay for now. Assuming legacy resources
 		return err
@@ -261,7 +262,7 @@ func (ll LicenseLibrary) AddAll() error {
 	return ll.AddAllLegacy()
 }
 
-func (ll LicenseLibrary) AddAllSPDX() error {
+func (ll *LicenseLibrary) AddAllSPDX() error {
 	resourcesPath := ll.Config.GetString(Resources)
 	SPDXDir := ll.Config.GetString(SPDX)
 	// templateMap := make(map[string]string)
@@ -277,6 +278,8 @@ func (ll LicenseLibrary) AddAllSPDX() error {
 	if err != nil {
 		return fmt.Errorf("unmarshal SPDXLicenseListJSON from %v error: %w", licensesJSON, err)
 	}
+
+	ll.SPDXVersion = licenseList.LicenseListVersion
 
 	exceptionsJSON := path.Join(jsonPath, "exceptions.json")
 	SPDXExceptionsListBytes, err := os.ReadFile(exceptionsJSON)
@@ -369,7 +372,7 @@ func (ll LicenseLibrary) AddAllSPDX() error {
 
 		isDeprecated := ll.LicenseMap[id].LicenseInfo.IsDeprecated
 		templateFilePath := getTemplateFilePath(id, isDeprecated, templatePath)
-		if err := addPreChecks(fileContents, templateFilePath, &ll); err != nil {
+		if err := addPreChecks(fileContents, templateFilePath, ll); err != nil {
 			return err
 		}
 	}
@@ -386,7 +389,7 @@ func getTemplateFilePath(id string, isDeprecated bool, templatePath string) stri
 	return f
 }
 
-func (ll LicenseLibrary) AddAllLegacy() error {
+func (ll *LicenseLibrary) AddAllLegacy() error {
 	if err := ll.addAcceptablePatternsFromBundledLibrary(); err != nil {
 		return err
 	}
@@ -400,7 +403,7 @@ func (ll LicenseLibrary) AddAllLegacy() error {
 	return nil
 }
 
-func (ll LicenseLibrary) addAcceptablePattern(patternId string, source string) error {
+func (ll *LicenseLibrary) addAcceptablePattern(patternId string, source string) error {
 	if _, ok := ll.AcceptablePatternsMap[patternId]; ok {
 		return fmt.Errorf("An acceptable pattern already exists with the ID %v", patternId)
 	}
@@ -413,7 +416,7 @@ func (ll LicenseLibrary) addAcceptablePattern(patternId string, source string) e
 	return nil
 }
 
-func (ll LicenseLibrary) addAcceptablePatternsFromBundledLibrary() error {
+func (ll *LicenseLibrary) addAcceptablePatternsFromBundledLibrary() error {
 	_, acceptablePatternsPath := getResourcePaths(ll.Config)
 	if err := ll.addRegexFromSourceToLibrary(acceptablePatternsPath, ll.addAcceptablePattern); err != nil && !os.IsNotExist(err) {
 		// Ignoring IsNotExist to make acceptable patterns optional, but other errs are not ok
@@ -422,7 +425,7 @@ func (ll LicenseLibrary) addAcceptablePatternsFromBundledLibrary() error {
 	return nil
 }
 
-func (ll LicenseLibrary) addRegexFromSourceToLibrary(sourceDir string, addFunction addFunc) error {
+func (ll *LicenseLibrary) addRegexFromSourceToLibrary(sourceDir string, addFunction addFunc) error {
 	files, err := ioutil.ReadDir(sourceDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -700,7 +703,7 @@ func GenerateRegexFromNormalizedText(normalizedText string) (*regexp.Regexp, err
 	return regexp.Compile(text)
 }
 
-func List(config *viper.Viper) (lics []Detail, deprecatedLics []Detail, exceptions []Exception, deprecatedExceptions []Exception, err error) {
+func List(config *viper.Viper) (lics []Detail, deprecatedLics []Detail, exceptions []Exception, deprecatedExceptions []Exception, spdxVersion string, err error) {
 	var ll *LicenseLibrary
 	ll, err = NewLicenseLibrary(config)
 	if err != nil {
@@ -711,6 +714,8 @@ func List(config *viper.Viper) (lics []Detail, deprecatedLics []Detail, exceptio
 	if err != nil {
 		return
 	}
+
+	spdxVersion = ll.SPDXVersion
 
 	lm := ll.LicenseMap
 

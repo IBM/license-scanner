@@ -108,7 +108,7 @@ func y(isIt bool) string {
 }
 
 func listLicenses(cfg *viper.Viper) error {
-	lics, deprecatedLics, exceptions, deprecatedExceptions, err := licenses.List(cfg)
+	lics, deprecatedLics, exceptions, deprecatedExceptions, spdxVersion, err := licenses.List(cfg)
 	if err != nil {
 		return err
 	}
@@ -141,10 +141,15 @@ func listLicenses(cfg *viper.Viper) error {
 		fmt.Printf("| %v | %v | %v | %v |\n", e.ID, e.Name, e.Family, e.NumTemplates)
 	}
 
+	var licenseListVersion string
+	if spdxVersion != "" {
+		licenseListVersion = fmt.Sprintf("  (SPDX license list %v)", spdxVersion)
+	}
 	fmt.Println("## Runtime Configuration")
 	fmt.Printf("* resources: %v\n", cfg.GetString("resources"))
-	fmt.Printf("  * spdx/%v\n", cfg.GetString(configurer.SpdxFlag))
+	fmt.Printf("  * spdx/%v%v\n", cfg.GetString(configurer.SpdxFlag), licenseListVersion)
 	fmt.Printf("  * custom/%v\n", cfg.GetString(configurer.CustomFlag))
+	fmt.Printf("\n###### Generated on %v\n", time.Now().Format(time.RFC3339))
 	return nil
 }
 
