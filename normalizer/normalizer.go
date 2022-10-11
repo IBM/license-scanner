@@ -31,7 +31,7 @@ const (
 	EndOptionalPattern         = `(?i)<<endOptional>>`
 	ReplaceEndPattern          = `<</omitable>>`
 	CommentBlockOutsidePattern = `(?m)^\s*(?:/\*|-{2,3}\[=*\[)|(?:\*/|]=*])\s*$`
-	CommentBlockInsidePattern  = `(?m)^\s*[*#]|\*$`
+	CommentBlockInsidePattern  = `(?m)^\s*[*#]{1,6}|\*{1,6}$`
 	CommentLinePattern         = `(?m)^\s*(?://|>|--|;{1,4})`
 	HtmlStyleCommentPattern    = `(?m)^\s*<!--|-->\s*$`
 	DashLikePattern            = "[\u002D\u2010\u2011\u2013\u2014\u2015\u2212\uFE58\uFE63\uFE0D]"
