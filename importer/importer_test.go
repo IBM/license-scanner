@@ -24,14 +24,44 @@ func TestImporter_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "CC-BY-3.0 space before comma",
+			name:    "CC-BY-3.0 fixed testdata space before comma '(iv) ,'",
 			id:      "CC-BY-3.0",
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name:    "Afmparse fixed testdata no space between comma-and",
+			id:      "Afmparse",
+			wantErr: false,
 		},
 		{
 			name:    "CC-BY-NC-SA-2.0-FR template mod removed several extra ' . '",
 			id:      "CC-BY-NC-SA-2.0-FR",
 			wantErr: false,
+		},
+		{
+			name:    "CC-BY-SA-3.0 fixed testdata space before comma after (iv) ",
+			id:      "CC-BY-SA-3.0",
+			wantErr: false,
+		},
+		{
+			name:    "COIL-1.0 fixed ## markdown prefix in normalizer",
+			id:      "COIL-1.0",
+			wantErr: false,
+		},
+		{
+			name:    "Community-Spec-1.0 'Scope for: 1)' and 'under which 1)' breaks when the 1) is on a newline like a bullet ",
+			id:      "Community-Spec-1.0",
+			wantErr: true,
+		},
+		{
+			name:    "copyleft-next-0.3.0 (probably 0.3.1 same) ** blocks ** (fixed) and then a (ii) on nl",
+			id:      "copyleft-next-0.3.0",
+			wantErr: true,
+		},
+		{
+			name:    "D-FSL-1.0 escaped > in <<regex>> breaks us: match=\"(\\)\\>|\\))?\">> ",
+			id:      "D-FSL-1.0",
+			wantErr: true,
 		},
 	}
 	testData := "../testdata/validator"
