@@ -109,7 +109,7 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			normalized := normalizer.NormalizationData{OriginalText: tt.args.originalPattern}
+			normalized := normalizer.NewNormalizationData(tt.args.originalPattern, true)
 			err := normalized.NormalizeText()
 			if err != nil {
 				t.Errorf("NormalizeText() error = %v", err)

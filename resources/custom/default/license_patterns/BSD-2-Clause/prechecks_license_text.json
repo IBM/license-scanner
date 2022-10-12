@@ -1,18 +1,14 @@
 {
-  "LicensePreChecks": [
-    "merchantability",
-    "theory_of_liability",
-    "With_or_without"
-  ],
   "StaticBlocks": [
     "redistribution",
     "and use in source and",
     "forms, with or without modification, are permitted",
-    "that the following conditions are met: redistribution of source code",
+    "that the following conditions are met:",
+    "redistribution of source code",
     "must retain the above copyright",
     "this list of",
     "and the following disclaimer",
-    ". redistribution in",
+    "redistribution in",
     "form must reproduce the above copyright",
     "this list of conditions and the following disclaimer in the documentation",
     "other materials provided with the distribution.",

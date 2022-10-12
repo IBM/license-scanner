@@ -51,12 +51,12 @@ func TestImporter_Validate(t *testing.T) {
 		{
 			name:    "Community-Spec-1.0 'Scope for: 1)' and 'under which 1)' breaks when the 1) is on a newline like a bullet ",
 			id:      "Community-Spec-1.0",
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "copyleft-next-0.3.0 (probably 0.3.1 same) ** blocks ** (fixed) and then a (ii) on nl",
 			id:      "copyleft-next-0.3.0",
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "D-FSL-1.0 escaped > in <<regex>> breaks us: match=\"(\\)\\>|\\))?\">> ",
