@@ -43,7 +43,7 @@ const (
 	HorizontalRulePattern      = `(?m)^\s*[*=-]{3,}`
 	Copyright                  = `©|\([cC]\)`
 	ControlCharacters          = "[\u0000-\u0007\u000E-\u001B]"
-	OddCharactersPattern       = "(?im)^\\^l$|\u0080|\u0099|\u009C|\u009D|\u00AC|\u00E2|\u00A7|\u00C2|\u00A4|\u0153|\u20AC|\uFFFD"
+	OddCharactersPattern       = "(?im)^\\^l$|\u00A0|\u0080|\u0099|\u009C|\u009D|\u00AC|\u00E2|\u00A7|\u00C2|\u00A4|\u0153|\u20AC|\uFFFD"
 	LeadingWhitespacePattern   = `^\s`
 	MiddleWhitespacePattern    = "(?:\\s|\u00B7)+"
 	TrailingWhitespacePattern  = `\s$`

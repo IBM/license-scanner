@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
+//go:build unit
+
 package importer
 
 import (
@@ -62,6 +66,11 @@ func TestImporter_Validate(t *testing.T) {
 			name:    "D-FSL-1.0 escaped > in <<regex>> breaks us: match=\"(\\)\\>|\\))?\">> ",
 			id:      "D-FSL-1.0",
 			wantErr: true,
+		},
+		{
+			name:    "IBM-pibs testdata has NBSP chars",
+			id:      "IBM-pibs",
+			wantErr: false,
 		},
 	}
 	testData := "../testdata/validator"
