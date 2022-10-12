@@ -59,7 +59,7 @@ func DebugLicenseMatchFailure(license licenses.License, normalizedText string) (
 	var results []string
 	for _, pattern := range license.PrimaryPatterns {
 
-		normalizedPattern := normalizer.NormalizationData{OriginalText: pattern.Text}
+		normalizedPattern := normalizer.NewNormalizationData(pattern.Text, true)
 		if err := normalizedPattern.NormalizeText(); err != nil {
 			return nil, err
 		}

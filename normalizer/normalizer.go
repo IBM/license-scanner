@@ -37,7 +37,8 @@ const (
 	DashLikePattern            = "[\u002D\u2010\u2011\u2013\u2014\u2015\u2212\uFE58\uFE63\uFE0D]"
 	QuoteLikePattern           = "[\u0022\u0027\u0060\u00B4\u2018\u2019\u201C\u201D]+"
 	HTTPPattern                = `(?i)https?`
-	BulletsAndNumberingPattern = "(?m)^\\s*(?:[*+\u2022-]|\\(?(?:\\w|\\*|[\\divx#]+)[.)])\\s+(\\w?)"
+	BulletsPattern             = "(?m)^\\s*(?:[*+\u2022-]|\\(?(?:\\w|\\*|[\\divx#]+)[.)])\\s+"
+	NumberingPattern           = "\\s(?:\\(?(?:\\w|\\*|[\\divx#]+)\\))\\s"
 	SplitWords                 = `(?m)\b-$\s+\b`
 	HorizontalRulePattern      = `(?m)^\s*[*=-]{3,}`
 	Copyright                  = `©|\([cC]\)`
@@ -64,7 +65,8 @@ var (
 	QuoteLikeRE                       = regexp.MustCompile(QuoteLikePattern)
 	DashLikeRE                        = regexp.MustCompile(DashLikePattern)
 	ReplaceableTextPatternRE          = regexp.MustCompile(ReplaceableTextPattern)
-	BulletsAndNumberingPatternRE      = regexp.MustCompile(BulletsAndNumberingPattern)
+	BulletsPatternRE                  = regexp.MustCompile(BulletsPattern)
+	NumberingPatternRE                = regexp.MustCompile(NumberingPattern)
 	CommentBlockOutsideRE             = regexp.MustCompile(CommentBlockOutsidePattern)
 	CommentBlockInsideRE              = regexp.MustCompile(CommentBlockInsidePattern)
 	HtmlStyleCommentRE                = regexp.MustCompile(HtmlStyleCommentPattern)
@@ -109,6 +111,7 @@ type NormalizationData struct {
 	IndexMap       []int
 	CaptureGroups  []*CaptureGroup
 	Hash           Digest
+	IsTemplate     bool
 }
 
 type CaptureGroup struct {
@@ -126,6 +129,15 @@ type Digest struct {
 	Sha256 string
 	// sha512
 	Sha512 string
+}
+
+func NewNormalizationData(originalText string, isTemplate bool) *NormalizationData {
+	nd := NormalizationData{
+		OriginalText: originalText,
+		IsTemplate:   isTemplate,
+	}
+	nd.initialize()
+	return &nd
 }
 
 // NormalizeText normalizes the input text
@@ -185,13 +197,6 @@ func (n *NormalizationData) NormalizeText() error {
 	// Templates may or may not include markup for this guideline.
 	n.standardizeToHTTP()
 
-	// SPDX matching guideline 7.1.1 (Bullets and Numbering)
-	// To avoid the possibility of a non-match due to the otherwise same license using bullets instead of numbers,
-	// number instead of letter, or no bullets instead of bullet, etc., for a list of clauses.
-	// The guideline says to ignore the list item for matching purposes but we do not ignore
-	// TODO: should we continue with this or we should change this and start ignoring the list item
-	n.removeBulletsAndNumbering()
-
 	// reconnect split words
 	n.reconnectSplitWords()
 
@@ -207,6 +212,10 @@ func (n *NormalizationData) NormalizeText() error {
 	// “©”, “(c)”, or “Copyright” should be considered equivalent and interchangeable.
 	// Templates do not include markup for this guideline so we replace all of these with `copyright`
 	n.replaceCopyrightSymbols()
+
+	// SPDX matching guideline 7.1.1 (Bullets and Numbering)
+	// * must be after replaceCopyrightSymbols() handle overlapping case (c)
+	n.removeBulletsAndNumbering()
 
 	// Remove HTML tags
 	n.removeHTMLTags()
@@ -408,23 +417,22 @@ func (n *NormalizationData) standardizeToHTTP() {
 	n.regexpReplacePatternAndUpdateIndexMap(HTTPPatternRE, "http")
 }
 
+// removeBulletsAndNumbering removes or replaces bullets and outline numbering to avoid common mismatches
 func (n *NormalizationData) removeBulletsAndNumbering() {
 	n.initialize() // initialize normalized text and index map if not set already
-	allSubmatchIndex := BulletsAndNumberingPatternRE.FindAllStringSubmatchIndex(n.NormalizedText, len(n.NormalizedText))
 
-	// Need to build replacement string list based on the submatches (to use the common text/indexMap update)
-	var replacements []string
-	for _, match := range allSubmatchIndex {
-		firstIndex := match[2]
-		lastIndex := match[3]
-		if firstIndex < 0 || lastIndex < 0 { // Not found submatches are -1 -1
-			replacements = append(replacements, "") // Use empty string for these
-		} else {
-			replacements = append(replacements, n.NormalizedText[firstIndex:lastIndex])
-		}
+	// NOTE: License files and license templates/patterns are handled differently.
+	// * In license files remove bullets and outline numbering to avoid mismatch.
+	// * In templates use a wildcard matcher to make bullets/numbers optional (matching replaced or not)
+	replacement := ""
+	if n.IsTemplate {
+		replacement = "<<.{0,20}?>>"
 	}
+	n.replaceMatchesWithStringAndUpdateIndexMap(
+		BulletsPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), strings.TrimSpace(replacement))
 
-	n.replaceMatchesWithStringsAndUpdateIndexMap(allSubmatchIndex, replacements)
+	n.replaceMatchesWithStringAndUpdateIndexMap(
+		NumberingPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
 }
 
 func (n *NormalizationData) reconnectSplitWords() {

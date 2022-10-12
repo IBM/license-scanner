@@ -1,7 +1,9 @@
 {
   "StaticBlocks": [
     "this software referred to as the condor® version 6.x software ('software') was developed by the condor project, condor team, computer sciences department, university of wisconsin-madison, under the authority of the board of regents of the university of wisconsin system and includes voluntary contributions made to the condor project ('copyright holders and contributors and the university'). for more information on the condor project, please see http://www.condorproject.org/. installation, use, reproduction, display, modification and redistribution of this software, with or without modification, in source and binary forms, are permitted. any exercise of rights under this license including sublicenses by you is subject to the following conditions:",
-    "redistribution of this software, with or without modification, must reproduce this condor public license in: (1) the software, and (2) any user documentation or other similar material which is provided with the software.",
+    "redistribution of this software, with or without modification, must reproduce this condor public license in:",
+    "the software, and",
+    "any user documentation or other similar material which is provided with the software.",
     "any user documentation included with a redistribution must include the following notice: 'this product includes software from the condor® project (http://www.condorproject.org/)' alternatively, if that is where third-party acknowledgements normally appear, this acknowledgement must be reproduced in the software itself.",
     "any academic report, publication, or other academic disclosure of results obtained with this software will acknowledge this software's use by an appropriate citation.",
     "the name condor® is a registered trademark of the university of wisconsin-madison. the trademark may not be used to endorse or promote software, or products derived therefrom, and, other than as required by section 2 and 3 above, it may not be affixed to modified redistribution of this software without the prior written approval, obtainable via email to condor-admin@cs.wisc.edu.",

@@ -636,9 +636,7 @@ func GenerateMatchingPatternFromSourceText(pp *PrimaryPatterns) (*regexp.Regexp,
 	var err error
 	pp.doOnce.Do(func() {
 		// Normalize the input text.
-		normalizedData := normalizer.NormalizationData{
-			OriginalText: pp.Text,
-		}
+		normalizedData := normalizer.NewNormalizationData(pp.Text, true)
 		err = normalizedData.NormalizeText()
 		if err == nil {
 			var re *regexp.Regexp

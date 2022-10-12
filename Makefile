@@ -9,6 +9,13 @@ test: ## Run all the tests.
 	@echo =============================
 	go test ./... -tags=unit -count=1
 
+.PHONY: prechecks
+prechecks: ## Update the precheck files
+	@echo ================================================
+	@echo ==== Running Precheck Test with -args -fix =====
+	@echo ================================================
+	go test ./... -tags=prechecks -count=1 -args -fix
+
 .PHONY: cover
 cover: ## Run the code coverage
 	@echo ================================

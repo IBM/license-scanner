@@ -59,7 +59,7 @@ func TestPreChecks(t *testing.T) {
 						t.Parallel()
 
 						// Normalize the pattern
-						normalizedPatternData := &normalizer.NormalizationData{OriginalText: pattern.Text}
+						normalizedPatternData := normalizer.NewNormalizationData(pattern.Text, true)
 						err := normalizedPatternData.NormalizeText()
 						if err != nil {
 							t.Errorf("pattern normalize text error: %v", err)
