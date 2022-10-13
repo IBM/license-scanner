@@ -26,6 +26,7 @@ const (
 	DebugFlag      = "debug"
 	QuietFlag      = "quiet"
 	LicenseFlag    = "license"
+	DirFlag        = "dir"
 	FileFlag       = "file"
 	ConfigPathFlag = "configPath"
 	ConfigNameFlag = "configName"
@@ -122,6 +123,7 @@ func NewDefaultFlags() *pflag.FlagSet {
 func AddDefaultFlags(flagSet *pflag.FlagSet) {
 	flagSet.BoolP(DebugFlag, "d", false, "Enable debug logging")
 	flagSet.BoolP(QuietFlag, "q", false, "Set logging to quiet")
+	flagSet.String(DirFlag, "", "A directory in which to identify licenses")
 	flagSet.StringP(FileFlag, "f", "", "A file in which to identify licenses")
 	flagSet.BoolP(AcceptableFlag, "g", false, "Flag acceptable")
 	flagSet.BoolP(KeywordsFlag, "k", false, "Flag keywords")
