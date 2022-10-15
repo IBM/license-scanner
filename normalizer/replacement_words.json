@@ -43,5 +43,8 @@
   "wilfull": "wilful",
   "noncommercial": "non-commercial",
   "percent": "per\\s+cent",
-  "copyright holder": "copyright\\s+owner"
+  "copyright holder": "copyright\\s+owner",
+  "": "\\*\\*",
+  ":": " ?:(?:( |\\\\s)?)",
+  ",": " ?,(?:( |\\\\s)?)"
 }

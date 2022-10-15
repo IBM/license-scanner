@@ -38,14 +38,14 @@ const (
 	QuoteLikePattern           = "[\u0022\u0027\u0060\u00B4\u2018\u2019\u201C\u201D]+"
 	HTTPPattern                = `(?i)https?`
 	BulletsPattern             = "(?m)^\\s*(?:[*+\u2022-]|\\(?(?:\\w|\\*|[\\divx#]+)[.)])\\s+"
-	NumberingPattern           = "\\s(?:\\(?(?:\\w|\\*|[\\divx#]+)\\))\\s"
+	NumberingPattern           = "(?:\\s*[\\s^]\\(?(?:\\w|[\\divx#]+)\\))\\s"
 	SplitWords                 = `(?m)\b-$\s+\b`
 	HorizontalRulePattern      = `(?m)^\s*[*=-]{3,}`
 	Copyright                  = `©|\([cC]\)`
 	ControlCharacters          = "[\u0000-\u0007\u000E-\u001B]"
-	OddCharactersPattern       = "(?im)^\\^l$|\u00A0|\u0080|\u0099|\u009C|\u009D|\u00AC|\u00E2|\u00A7|\u00C2|\u00A4|\u0153|\u20AC|\uFFFD"
+	OddCharactersPattern       = "(?im)^\\^l$|\u0080|\u0099|\u009C|\u009D|\u00AC|\u00E2|\u00A7|\u00C2|\u00A4|\u0153|\u20AC|\uFFFD"
 	LeadingWhitespacePattern   = `^\s`
-	MiddleWhitespacePattern    = "(?:\\s|\u00B7)+"
+	MiddleWhitespacePattern    = "(?:\\s|\u00A0|\u2028|\u00B7)+"
 	TrailingWhitespacePattern  = `\s$`
 )
 
@@ -203,9 +203,6 @@ func (n *NormalizationData) NormalizeText() error {
 	// remove horizontal rules
 	n.removeHorizontalRules()
 
-	// Replace varietal word spelling. (Guideline 8.1.1)
-	n.replaceVarietalWordSpellings()
-
 	// SPDX matching guideline 9.1.1 (Copyright Symbol)
 	// By having a rule regarding the use of “©”, “(c)”, or “copyright”,
 	// we avoid the possibility of a mismatch based on these variations.
@@ -215,7 +212,7 @@ func (n *NormalizationData) NormalizeText() error {
 
 	// SPDX matching guideline 7.1.1 (Bullets and Numbering)
 	// * must be after replaceCopyrightSymbols() handle overlapping case (c)
-	n.removeBulletsAndNumbering()
+	n.replaceBulletsAndNumbering()
 
 	// Remove HTML tags
 	n.removeHTMLTags()
@@ -227,6 +224,9 @@ func (n *NormalizationData) NormalizeText() error {
 	// To avoid the possibility of a non-match due to different spacing of words, line breaks, or paragraphs.
 	// All whitespace should be treated as a single blank space.
 	n.replaceWhitespace()
+
+	// Replace varietal word spelling. (Guideline 8.1.1)
+	n.replaceVarietalWordSpellings()
 
 	// Add Hash Digest
 	// calculate MD5 for the normalized text
@@ -382,8 +382,11 @@ func (n *NormalizationData) removeHTMLTags() {
 		i = next + i // position in the full normalized text string
 		next = i + 1 // if we continue to loop, start one char after the last hit -- also used for lookahead position
 
-		if textLen > next+len("http") && n.NormalizedText[next:next+len("http")] == "http" {
-			continue // negative lookahead.  Ignoring <http... links.
+		httpProtocol := "http"
+		httpLen := len(httpProtocol)
+		if textLen > next+httpLen && n.NormalizedText[next:next+httpLen] == httpProtocol {
+			next += httpLen
+			continue // negative lookahead.  Ignoring <http... links. Skipping ahead.
 		}
 
 		// move past contents until forbidden char or end char
@@ -394,15 +397,28 @@ func (n *NormalizationData) removeHTMLTags() {
 			}
 		}
 
-		// lookahead again to ignore >>
+		if textLen > j && n.NormalizedText[j] == '<' { // forbidden char. This is not the tag you are looking for.
+			if n.NormalizedText[j-1] == '<' { // this was a <<, so move ahead
+				j++
+			}
+			next = j + 1
+			continue
+		}
+
+		// Lookahead for >> (and skip these), otherwise append the found < link >
 		if textLen > j && n.NormalizedText[j] == '>' && (textLen <= j+1 || n.NormalizedText[j+1] != '>') {
 			next = j + 1 // if we continue to loop, start one char after the last hit -- also end match index
 			allSubmatchIndex = append(allSubmatchIndex, []int{i, next})
 		}
 	}
 
-	// remove the matches
-	n.replaceMatchesWithStringAndUpdateIndexMap(allSubmatchIndex, "")
+	// replace the < tag matches > with a non-whitespace placeholder in licenses
+	// and a simple matcher in templates
+	replacement := "♢"
+	if n.IsTemplate {
+		replacement = "<<.{0,144}?>>"
+	}
+	n.replaceMatchesWithStringAndUpdateIndexMap(allSubmatchIndex, replacement)
 }
 
 func (n *NormalizationData) replaceDashLikeCharacters() {
@@ -417,8 +433,8 @@ func (n *NormalizationData) standardizeToHTTP() {
 	n.regexpReplacePatternAndUpdateIndexMap(HTTPPatternRE, "http")
 }
 
-// removeBulletsAndNumbering removes or replaces bullets and outline numbering to avoid common mismatches
-func (n *NormalizationData) removeBulletsAndNumbering() {
+// replaceBulletsAndNumbering removes or replaces bullets and outline numbering to avoid common mismatches
+func (n *NormalizationData) replaceBulletsAndNumbering() {
 	n.initialize() // initialize normalized text and index map if not set already
 
 	// NOTE: License files and license templates/patterns are handled differently.
@@ -427,12 +443,12 @@ func (n *NormalizationData) removeBulletsAndNumbering() {
 	replacement := ""
 	if n.IsTemplate {
 		replacement = "<<.{0,20}?>>"
-	}
-	n.replaceMatchesWithStringAndUpdateIndexMap(
-		BulletsPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), strings.TrimSpace(replacement))
+		n.replaceMatchesWithStringAndUpdateIndexMap(
+			BulletsPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
 
-	n.replaceMatchesWithStringAndUpdateIndexMap(
-		NumberingPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
+		n.replaceMatchesWithStringAndUpdateIndexMap(
+			NumberingPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
+	}
 }
 
 func (n *NormalizationData) reconnectSplitWords() {

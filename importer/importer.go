@@ -96,8 +96,16 @@ func AddAllSPDXTemplates(cfg *viper.Viper) error {
 		textFile := path.Join(textSrcDir, id+".txt")
 
 		if err := ValidateSPDXTemplateWithLicenseText(id, templateFile, textFile, templateDestDir, preCheckDestDir, textDestDir); err != nil {
-			_ = Logger.Errorf("template ID %v is not valid", id)
-			errorCount++
+			deprecatedPrefix := "deprecated_"
+			if strings.HasPrefix(id, deprecatedPrefix) {
+				altTextFile := path.Join(textSrcDir, strings.TrimPrefix(id+".txt", deprecatedPrefix))
+				Logger.Infof("template ID %v is not valid retrying w/o testdata prefix", id)
+				err = ValidateSPDXTemplateWithLicenseText(id, templateFile, altTextFile, templateDestDir, preCheckDestDir, textDestDir)
+			}
+			if err != nil {
+				_ = Logger.Errorf("template ID %v is not valid", id)
+				errorCount++
+			}
 		}
 	}
 	if errorCount > 0 {

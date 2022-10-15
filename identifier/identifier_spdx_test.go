@@ -83,7 +83,6 @@ func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
 
 	var tfs []tf
 
-	// type WalkDirFunc func(path string, d DirEntry, err error) error
 	err = filepath.WalkDir(testDataDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
@@ -91,6 +90,9 @@ func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
 		}
 		if !d.IsDir() {
 			tfs = append(tfs, tf{name: d.Name(), path: path})
+		} else {
+			// skip subdirs (e.g. /invalid)
+			return filepath.SkipDir
 		}
 		return nil
 	})

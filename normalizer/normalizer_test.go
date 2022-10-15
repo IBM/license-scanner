@@ -35,13 +35,13 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 					"<<endOptional>>\n",
 			},
 			e: &NormalizationData{
-				NormalizedText: "permission is hereby granted, free of charge, to any person obtaining a copy of <<this|the>> <<.{0,144}>> <<omitable>>software <<and/?o?r?>> associated documentation<</omitable>>" +
+				NormalizedText: "permission is hereby granted,free of charge,to any person obtaining a copy of <<this|the>> <<.{0,144}>> <<omitable>>software <<and/?o?r?>> associated documentation<</omitable>>" +
 					" <<omitable>>software<</omitable>> <<omitable>><<files?>> (the <<'?software'?|'?materials'?>>),<</omitable>> to deal in the <<software|code|materials>> without restriction," +
-					" including without <<limitation,?>> <<omitable>>on<</omitable>> the <<omitable>>irrevocable, perpetual, worldwide, and royalty-free<</omitable>> rights to use, copy, modify, merge, publish, distribute," +
-					" <<omitable>>sublicense,<</omitable>> <<omitable>>distribute with modifications,<</omitable>> <<omitable>><<sub ?license,?>><</omitable>> <<omitable>>display, perform, create derivative works from<</omitable>>" +
-					" <<and ?/ ?or>> sell copies of the <<software|code|materials>>, <<omitable>> both in source<</omitable>> and <<omitable>>object code form, and<</omitable>> to permit persons to whom" +
-					" the <<software|code|materials>> <<is|are>> furnished to do so, subject to the following <<conditions|disclaimer>>:" +
-					" <<omitable>> " +
+					"including without <<limitation,?>> <<omitable>>on<</omitable>> the <<omitable>>irrevocable,perpetual,worldwide,and royalty-free<</omitable>> rights to use,copy,modify,merge,publish,distribute," +
+					"<<omitable>>sublicense,<</omitable>> <<omitable>>distribute with modifications,<</omitable>> <<omitable>><<sub ?license,?>><</omitable>> <<omitable>>display,perform,create derivative works from<</omitable>>" +
+					" <<and ?/ ?or>> sell copies of the <<software|code|materials>>,<<omitable>> both in source<</omitable>> and <<omitable>>object code form,and<</omitable>> to permit persons to whom" +
+					" the <<software|code|materials>> <<is|are>> furnished to do so,subject to the following <<conditions|disclaimer>>:" +
+					"<<omitable>> " +
 					"the above copyright notice<< and|,>> this permission notice <<omitable>>and the disclaimer statement<</omitable>> <<omitable>>(including the next " +
 					"paragraph)<</omitable>> <<shall|must>> be included in all copies or substantial portions of the <<software|code|materials>>. " +
 					"<</omitable>>",
@@ -53,7 +53,7 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 				OriginalText: `quoted match test: <<var;name="test";original="Test  ";match=".{0,100}">> any100`,
 			},
 			e: &NormalizationData{
-				NormalizedText: "quoted match test: <<.{0,100}?>> any100",
+				NormalizedText: "quoted match test:<<.{0,100}?>> any100",
 			},
 		},
 		{
@@ -62,7 +62,7 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 				OriginalText: `quoted match test: <<var;name="test";original="Test  ";match=".{0,5000}">> any5000`,
 			},
 			e: &NormalizationData{
-				NormalizedText: "quoted match test: <<.{0,1000}?>> any5000",
+				NormalizedText: "quoted match test:<<.{0,1000}?>> any5000",
 			},
 		},
 		{
@@ -71,7 +71,7 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 				OriginalText: `runes in Commissariat a l'energie atomique then htmltag <<beginOptional>>X<#why>Z<<endOptional>> .`,
 			},
 			e: &NormalizationData{
-				NormalizedText: `runes in commissariat a l'energie atomique then htmltag <<omitable>>xz<</omitable>> .`,
+				NormalizedText: `runes in commissariat a l'energie atomique then htmltag <<omitable>>x♢z<</omitable>> .`,
 			},
 		},
 		{
@@ -80,7 +80,7 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 				OriginalText: `runes in Commissariat à l'énergie atomique then htmltag <<beginOptional>>X<#why>Z<<endOptional>> .`,
 			},
 			e: &NormalizationData{
-				NormalizedText: "runes in commissariat à l'énergie atomique then htmltag <<omitable>>xz<</omitable>> .",
+				NormalizedText: "runes in commissariat à l'énergie atomique then htmltag <<omitable>>x♢z<</omitable>> .",
 			},
 		},
 	}
@@ -360,12 +360,12 @@ func TestNormalizationData_NormalizeText_removeHTMLTags(t *testing.T) {
 		e    *NormalizationData
 	}{
 		{
-			name: "negative lookahead to keep http links remove other tokens",
+			name: "negative lookahead to keep http links replace other tokens with placeholder symbol",
 			n: &NormalizationData{
 				OriginalText: "<http>\n<head>This is a head</head>",
 			},
 			e: &NormalizationData{
-				NormalizedText: "<http> this is a head",
+				NormalizedText: "<http> ♢this is a head♢",
 			},
 		},
 		{
@@ -384,6 +384,24 @@ func TestNormalizationData_NormalizeText_removeHTMLTags(t *testing.T) {
 			},
 			e: &NormalizationData{
 				NormalizedText: "<http",
+			},
+		},
+		{
+			name: "tag with tag inside we skip",
+			n: &NormalizationData{
+				OriginalText: "<link < test >",
+			},
+			e: &NormalizationData{
+				NormalizedText: "<link < test >",
+			},
+		},
+		{
+			name: "template markers not to be messed with",
+			n: &NormalizationData{
+				OriginalText: "<<link>> <test>",
+			},
+			e: &NormalizationData{
+				NormalizedText: "<<link>> ♢",
 			},
 		},
 	}
@@ -481,23 +499,36 @@ func TestNormalizationData_NormalizeText_standardizeToHTTP(t *testing.T) {
 	}
 }
 
-func TestNormalizationData_NormalizeText_removeBulletsAndNumbering(t *testing.T) {
+func TestNormalizationData_NormalizeText_replaceBulletsAndNumbering(t *testing.T) {
 	tcs := []struct {
 		name string
 		n    *NormalizationData
 		e    *NormalizationData
-	}{{
-		n: &NormalizationData{
-			OriginalText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+	}{
+		{
+			name: "IsTemplate=false",
+			n: &NormalizationData{
+				OriginalText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+			},
+			e: &NormalizationData{
+				NormalizedText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+			},
 		},
-		e: &NormalizationData{
-			NormalizedText: fmt.Sprintf("letter-paren \nletter-dot \nnumber \nstar \ndash"),
+		{
+			name: "IsTemplate=true",
+			n: &NormalizationData{
+				OriginalText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+				IsTemplate:   true,
+			},
+			e: &NormalizationData{
+				NormalizedText: fmt.Sprintf("<<.{0,20}?>>letter-paren \n<<.{0,20}?>>letter-dot \n<<.{0,20}?>>number \n<<.{0,20}?>>star \n<<.{0,20}?>>dash"),
+			},
 		},
-	}}
+	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.n.removeBulletsAndNumbering()
+			tc.n.replaceBulletsAndNumbering()
 			if d := cmp.Diff(tc.e.NormalizedText, tc.n.NormalizedText); d != "" {
 				t.Errorf("Didn't get expected Normalized text: %s", fmt.Sprintf("(-want, +got): %s", d))
 			}
