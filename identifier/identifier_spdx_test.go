@@ -47,22 +47,27 @@ func Test_identifyLicensesInSPDXTestDataDirectory(t *testing.T) {
 		t.Errorf("IdentifyLicensesInDirectory(%v) err = %v", testDataDir, err)
 	}
 
-	const expected = 501
-	if actual := len(results); actual != expected {
-		t.Errorf("IdentifyLicensesInDirectory(%v) len(results) expected %v actual: %v", testDataDir, expected, actual)
-	}
-
+	const expected = 541
+	actual := 0
 	for _, result := range results {
 		result := result
 		t.Run(result.File, func(t *testing.T) {
 			t.Parallel()
-			wantLicenseID := strings.TrimSuffix(path.Base(result.File), ".txt")
-			wantLicenseID = strings.TrimPrefix(wantLicenseID, "deprecated_")
-			if _, ok := result.Matches[wantLicenseID]; !ok {
-				t.Error("Did not get: ", wantLicenseID)
+			if !strings.Contains(result.File, "/invalid/") {
+				wantLicenseID := strings.TrimSuffix(path.Base(result.File), ".txt")
+				wantLicenseID = strings.TrimPrefix(wantLicenseID, "deprecated_")
+				if _, ok := result.Matches[wantLicenseID]; !ok {
+					t.Error("Did not get: ", wantLicenseID)
+				}
+				actual++
 			}
 		})
 	}
+
+	if actual := len(results); actual != expected {
+		t.Errorf("IdentifyLicensesInDirectory(%v) len(results) expected %v actual: %v", testDataDir, expected, actual)
+	}
+
 }
 
 func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
