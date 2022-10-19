@@ -4,7 +4,7 @@
     "definitions in this license,the following terms have the following meaning:",
     "the license:this license.",
     "the original work or the software:the software distributed and/or communicated by the licensor under this license,available as source code and also as executable code as the case may be.",
-    "derivative works:the works or software that could be created by the licensee,based upon the original work or modifications thereof. this license does not define the extent of modification or dependence on the original work required in order to classify a work as a derivative work; this extent is determined by copyright law applicable in the country mentioned in article 15.",
+    "derivative works:the works or software that could be created by the licensee,based upon the original work or modifications thereof. this license does not define the extent of modification or dependence on the original work required in order to classify a work as a derivative work; this extent is determined by copyright law applicable in the country mentioned in article",
     "the work:the original work and/or its derivative works.",
     "the source code:the human-readable form of the work which is the most convenient for people to study and modify.",
     "the executable code:any code which has generally been compiled and which is meant to be interpreted by a computer as a program.",
@@ -35,10 +35,15 @@
     "applicable law this license shall be governed by the law of the european union country where the licensor resides or has his registered office. this license shall be governed by the belgian law if:",
     "a litigation arises between the european commission,as a licensor,and any licensee;",
     "the licensor,other than the european commission,has no residence or registered office inside a european union country. appendix 'compatible licenses' according to article 5 eupl are:",
-    "gnu general public license (gnu gpl) v. 2",
-    "open software license (osl) v. 2.1,v. 3.0",
-    "common public license v. 1.0",
-    "eclipse public license v. 1.0",
-    "cecill v. 2.0"
+    "gnu general public license (gnu gpl)",
+    "open software license (osl)",
+    "2.1,",
+    "3.0",
+    "common public license",
+    "1.0",
+    "eclipse public license",
+    "1.0",
+    "cecill",
+    "2.0"
   ]
 }

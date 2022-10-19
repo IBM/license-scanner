@@ -1,6 +1,7 @@
 {
   "StaticBlocks": [
-    "preamble cern has developed this license to promote collaboration among hardware designers and to provide a legal tool which supports the freedom to use,study,modify,share and distribute hardware designs and products based on those designs. version 2 of the cern open hardware license comes in three variants:cern-ohl-p (permissive); and two reciprocal licenses:cern-ohl-w (weakly reciprocal) and this license,cern-ohl-s (strongly reciprocal). the cern-ohl-s is copyright cern 2020. anyone is welcome to use it,in unmodified form only. use of this license does not imply any endorsement by cern of any licensor or their designs nor does it imply any involvement by cern in their development.",
+    "preamble cern has developed this license to promote collaboration among hardware designers and to provide a legal tool which supports the freedom to use,study,modify,share and distribute hardware designs and products based on those designs. version 2 of the cern open hardware license comes in three variants:cern-ohl-p (permissive); and two reciprocal licenses:cern-ohl-w (weakly reciprocal) and this license,cern-ohl-s (strongly reciprocal). the cern-ohl-s is copyright cern",
+    "anyone is welcome to use it,in unmodified form only. use of this license does not imply any endorsement by cern of any licensor or their designs nor does it imply any involvement by cern in their development.",
     "definitions",
     "'license' means this cern-ohl-s.",
     "'compatible license' means",

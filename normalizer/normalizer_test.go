@@ -12,6 +12,7 @@ import (
 )
 
 func TestNormalizationData_NormalizeText(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name string
 		n    *NormalizationData
@@ -500,6 +501,7 @@ func TestNormalizationData_NormalizeText_standardizeToHTTP(t *testing.T) {
 }
 
 func TestNormalizationData_NormalizeText_replaceBulletsAndNumbering(t *testing.T) {
+	t.Parallel()
 	tcs := []struct {
 		name string
 		n    *NormalizationData
@@ -508,26 +510,28 @@ func TestNormalizationData_NormalizeText_replaceBulletsAndNumbering(t *testing.T
 		{
 			name: "IsTemplate=false",
 			n: &NormalizationData{
-				OriginalText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+				OriginalText: "a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash",
 			},
 			e: &NormalizationData{
-				NormalizedText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+				NormalizedText: "a) letter-paren \nb. letter-dot \n1. number \nstar \ndash",
 			},
 		},
 		{
 			name: "IsTemplate=true",
 			n: &NormalizationData{
-				OriginalText: fmt.Sprintf("a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash"),
+				OriginalText: "a) letter-paren \nb. letter-dot \n1. number \n* star \n- dash",
 				IsTemplate:   true,
 			},
 			e: &NormalizationData{
-				NormalizedText: fmt.Sprintf("<<.{0,20}?>>letter-paren \n<<.{0,20}?>>letter-dot \n<<.{0,20}?>>number \n<<.{0,20}?>>star \n<<.{0,20}?>>dash"),
+				NormalizedText: "<<.{0,20}?>>letter-paren <<.{0,20}?>>letter-dot <<.{0,20}?>>number \n<<.{0,20}?>>star \n<<.{0,20}?>>dash",
 			},
 		},
 	}
 
 	for _, tc := range tcs {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			tc.n.replaceBulletsAndNumbering()
 			if d := cmp.Diff(tc.e.NormalizedText, tc.n.NormalizedText); d != "" {
 				t.Errorf("Didn't get expected Normalized text: %s", fmt.Sprintf("(-want, +got): %s", d))

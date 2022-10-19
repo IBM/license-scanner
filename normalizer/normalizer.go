@@ -37,8 +37,8 @@ const (
 	DashLikePattern            = "[\u002D\u2010\u2011\u2013\u2014\u2015\u2212\uFE58\uFE63\uFE0D]"
 	QuoteLikePattern           = "[\u0022\u0027\u0060\u00B4\u2018\u2019\u201C\u201D]+"
 	HTTPPattern                = `(?i)https?`
-	BulletsPattern             = "(?m)^\\s*(?:[*+\u2022-]|\\(?(?:\\w|\\*|[\\divx#]+)[.)])\\s+"
-	NumberingPattern           = "(?:\\s*[\\s^]\\(?(?:\\w|[\\divx#]+)\\))\\s"
+	BulletsPattern             = "(?m)^\\s*[*+\u2022-]\\s+"
+	NumberingPattern           = "(?m)(?:\\s|^)\\(?(?:\\w|[\\divx#]+)[.)][\\s$]"
 	SplitWords                 = `(?m)\b-$\s+\b`
 	HorizontalRulePattern      = `(?m)^\s*[*=-]{3,}`
 	Copyright                  = `©|\([cC]\)`
@@ -440,14 +440,12 @@ func (n *NormalizationData) replaceBulletsAndNumbering() {
 	// NOTE: License files and license templates/patterns are handled differently.
 	// * In license files remove bullets and outline numbering to avoid mismatch.
 	// * In templates use a wildcard matcher to make bullets/numbers optional (matching replaced or not)
-	replacement := ""
 	if n.IsTemplate {
-		replacement = "<<.{0,20}?>>"
-		n.replaceMatchesWithStringAndUpdateIndexMap(
-			BulletsPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
-
-		n.replaceMatchesWithStringAndUpdateIndexMap(
-			NumberingPatternRE.FindAllStringIndex(n.NormalizedText, len(n.NormalizedText)), replacement)
+		replacement := "<<.{0,20}?>>"
+		n.regexpReplacePatternAndUpdateIndexMap(BulletsPatternRE, replacement)
+		n.regexpReplacePatternAndUpdateIndexMap(NumberingPatternRE, replacement)
+	} else {
+		n.regexpRemovePatternAndUpdateIndexMap(BulletsPatternRE)
 	}
 }
 
