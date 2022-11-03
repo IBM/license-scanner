@@ -84,9 +84,7 @@ func validate(id string, templateBytes []byte, textBytes []byte, templateFile st
 		return
 	}
 
-	normalizedTemplate := &normalizer.NormalizationData{
-		OriginalText: string(templateBytes),
-	}
+	normalizedTemplate := normalizer.NewNormalizationData(string(templateBytes), true)
 	if err = normalizedTemplate.NormalizeText(); err != nil {
 		return
 	}

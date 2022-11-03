@@ -29,6 +29,13 @@ test-verbose: ## Run all the tests.
 	go test -v ./... -tags=unit -count=1 | tee -a ${OUTPUT} || (err=$$?; grep "FAIL" ${OUTPUT} || true; rm ${OUTPUT} && exit $$err)
 	@rm ${OUTPUT}
 
+.PHONY: prechecks
+prechecks: ## Update the precheck files
+	@echo ================================================
+	@echo ==== Running Precheck Test with -args -fix =====
+	@echo ================================================
+	go test ./... -tags=prechecks -count=1 -args -fix
+
 .PHONY: cover
 cover: ## Run the code coverage
 	@echo ================================

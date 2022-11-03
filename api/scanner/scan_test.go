@@ -160,9 +160,9 @@ func TestScanSpec_ScanLicenseText_With_CachedResults(t *testing.T) {
 		LicenseText: asyncLicense,
 	}
 	asyncHash := normalizer.Digest{
-		Md5:    "46bd009b3da03e40eee36c16b94fd90b",
-		Sha256: "947f3b468baedac6905b9936e924adbbeaa6609d2641e907ec2f3a8516304621",
-		Sha512: "b658731044479367a55320c18be477d915e2626c56083c63f65027ccc29e65fa6131130debb04b725caea5d6b879d0e11d97222e27a603e339ae2adb4acff226",
+		Md5:    "63b4fe4853814d14fa6f02f956dc76da",
+		Sha256: "f90c805ca599d0372505e7e95dc121e26df2db81fb5d63af04b496aeff037790",
+		Sha512: "325256a1c5c50b260316017681634862da8b2741db2fa2301ebfffbe31d55db18ef30264dd9f7e359396d23e6b2ae041ea44e32f91e7f6af023f0f2a4c791dce",
 	}
 	asyncScanResult := scanner.ScanResult{
 		Spec:         asyncSpec,

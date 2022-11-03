@@ -1,9 +1,5 @@
 {
-  "LicensePreChecks": [
-    "As_is",
-    "merchantability"
-  ],
   "StaticBlocks": [
-    "this software is provided 'as is' and without any express or implied warranties, including, without limitation, the implied warranties of merchantability and fitness for a particular purpose."
+    "this software is provided 'as is' and without any express or implied warranties,including,without limitation,the implied warranties of merchantability and fitness for a particular purpose."
   ]
 }

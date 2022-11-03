@@ -78,12 +78,12 @@ func Test_generateRegexFromNormalizedText(t *testing.T) {
 			wantMatch: true,
 		},
 		{
-			name: "regex with match extra space separation does not match",
+			name: "regex with match extra space separation does match (originally did not)",
 			args: args{
 				originalPattern: "including without <<match=limitation,?>>",
 			},
 			matches:   "the Software without restriction, including without  limitation the rights to\n",
-			wantMatch: false,
+			wantMatch: true,
 		},
 		{
 			name: "match 5000 needs to be split into 1000 or less",
@@ -94,7 +94,7 @@ func Test_generateRegexFromNormalizedText(t *testing.T) {
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted.`,
 			},
-			matches:   ` bsd zero-clause license(0bsd) ...allows anything here... permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted.`,
+			matches:   ` bsd zero-clause license(0bsd) ...allows anything here... permission to use,copy,modify,and/or distribute this software for any purpose with or without fee is hereby granted.`,
 			wantMatch: true,
 		},
 		{
@@ -109,7 +109,7 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			normalized := normalizer.NormalizationData{OriginalText: tt.args.originalPattern}
+			normalized := normalizer.NewNormalizationData(tt.args.originalPattern, true)
 			err := normalized.NormalizeText()
 			if err != nil {
 				t.Errorf("NormalizeText() error = %v", err)

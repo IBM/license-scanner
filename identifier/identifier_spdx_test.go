@@ -47,22 +47,27 @@ func Test_identifyLicensesInSPDXTestDataDirectory(t *testing.T) {
 		t.Errorf("IdentifyLicensesInDirectory(%v) err = %v", testDataDir, err)
 	}
 
-	const expected = 501
-	if actual := len(results); actual != expected {
-		t.Errorf("IdentifyLicensesInDirectory(%v) len(results) expected %v actual: %v", testDataDir, expected, actual)
-	}
-
+	const expected = 541
+	actual := 0
 	for _, result := range results {
 		result := result
 		t.Run(result.File, func(t *testing.T) {
 			t.Parallel()
-			wantLicenseID := strings.TrimSuffix(path.Base(result.File), ".txt")
-			wantLicenseID = strings.TrimPrefix(wantLicenseID, "deprecated_")
-			if _, ok := result.Matches[wantLicenseID]; !ok {
-				t.Error("Did not get: ", wantLicenseID)
+			if !strings.Contains(result.File, "/invalid/") {
+				wantLicenseID := strings.TrimSuffix(path.Base(result.File), ".txt")
+				wantLicenseID = strings.TrimPrefix(wantLicenseID, "deprecated_")
+				if _, ok := result.Matches[wantLicenseID]; !ok {
+					t.Error("Did not get: ", wantLicenseID)
+				}
+				actual++
 			}
 		})
 	}
+
+	if actual := len(results); actual != expected {
+		t.Errorf("IdentifyLicensesInDirectory(%v) len(results) expected %v actual: %v", testDataDir, expected, actual)
+	}
+
 }
 
 func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
@@ -83,7 +88,6 @@ func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
 
 	var tfs []tf
 
-	// type WalkDirFunc func(path string, d DirEntry, err error) error
 	err = filepath.WalkDir(testDataDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
@@ -91,6 +95,9 @@ func Test_identifyLicensesInSPDXTestDataFiles(t *testing.T) {
 		}
 		if !d.IsDir() {
 			tfs = append(tfs, tf{name: d.Name(), path: path})
+		} else {
+			// skip subdirs (e.g. /invalid)
+			return filepath.SkipDir
 		}
 		return nil
 	})

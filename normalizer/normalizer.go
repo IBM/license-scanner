@@ -37,14 +37,15 @@ const (
 	DashLikePattern            = "[\u002D\u2010\u2011\u2013\u2014\u2015\u2212\uFE58\uFE63\uFE0D]"
 	QuoteLikePattern           = "[\u0022\u0027\u0060\u00B4\u2018\u2019\u201C\u201D]+"
 	HTTPPattern                = `(?i)https?`
-	BulletsAndNumberingPattern = "(?m)^\\s*(?:[*+\u2022-]|\\(?(?:\\w|\\*|[\\divx#]+)[.)])\\s+(\\w?)"
+	BulletsPattern             = "(?m)^\\s*[*+\u2022-]\\s+"
+	NumberingPattern           = "(?m)(?:\\s|^)\\(?(?:\\w|[\\divx#]+)[.)][\\s$]"
 	SplitWords                 = `(?m)\b-$\s+\b`
 	HorizontalRulePattern      = `(?m)^\s*[*=-]{3,}`
 	Copyright                  = `©|\([cC]\)`
 	ControlCharacters          = "[\u0000-\u0007\u000E-\u001B]"
 	OddCharactersPattern       = "(?im)^\\^l$|\u0080|\u0099|\u009C|\u009D|\u00AC|\u00E2|\u00A7|\u00C2|\u00A4|\u0153|\u20AC|\uFFFD"
 	LeadingWhitespacePattern   = `^\s`
-	MiddleWhitespacePattern    = "(?:\\s|\u00B7)+"
+	MiddleWhitespacePattern    = "(?:\\s|\u00A0|\u2028|\u00B7)+"
 	TrailingWhitespacePattern  = `\s$`
 )
 
@@ -64,7 +65,8 @@ var (
 	QuoteLikeRE                       = regexp.MustCompile(QuoteLikePattern)
 	DashLikeRE                        = regexp.MustCompile(DashLikePattern)
 	ReplaceableTextPatternRE          = regexp.MustCompile(ReplaceableTextPattern)
-	BulletsAndNumberingPatternRE      = regexp.MustCompile(BulletsAndNumberingPattern)
+	BulletsPatternRE                  = regexp.MustCompile(BulletsPattern)
+	NumberingPatternRE                = regexp.MustCompile(NumberingPattern)
 	CommentBlockOutsideRE             = regexp.MustCompile(CommentBlockOutsidePattern)
 	CommentBlockInsideRE              = regexp.MustCompile(CommentBlockInsidePattern)
 	HtmlStyleCommentRE                = regexp.MustCompile(HtmlStyleCommentPattern)
@@ -109,6 +111,7 @@ type NormalizationData struct {
 	IndexMap       []int
 	CaptureGroups  []*CaptureGroup
 	Hash           Digest
+	IsTemplate     bool
 }
 
 type CaptureGroup struct {
@@ -126,6 +129,15 @@ type Digest struct {
 	Sha256 string
 	// sha512
 	Sha512 string
+}
+
+func NewNormalizationData(originalText string, isTemplate bool) *NormalizationData {
+	nd := NormalizationData{
+		OriginalText: originalText,
+		IsTemplate:   isTemplate,
+	}
+	nd.initialize()
+	return &nd
 }
 
 // NormalizeText normalizes the input text
@@ -185,21 +197,11 @@ func (n *NormalizationData) NormalizeText() error {
 	// Templates may or may not include markup for this guideline.
 	n.standardizeToHTTP()
 
-	// SPDX matching guideline 7.1.1 (Bullets and Numbering)
-	// To avoid the possibility of a non-match due to the otherwise same license using bullets instead of numbers,
-	// number instead of letter, or no bullets instead of bullet, etc., for a list of clauses.
-	// The guideline says to ignore the list item for matching purposes but we do not ignore
-	// TODO: should we continue with this or we should change this and start ignoring the list item
-	n.removeBulletsAndNumbering()
-
 	// reconnect split words
 	n.reconnectSplitWords()
 
 	// remove horizontal rules
 	n.removeHorizontalRules()
-
-	// Replace varietal word spelling. (Guideline 8.1.1)
-	n.replaceVarietalWordSpellings()
 
 	// SPDX matching guideline 9.1.1 (Copyright Symbol)
 	// By having a rule regarding the use of “©”, “(c)”, or “copyright”,
@@ -207,6 +209,10 @@ func (n *NormalizationData) NormalizeText() error {
 	// “©”, “(c)”, or “Copyright” should be considered equivalent and interchangeable.
 	// Templates do not include markup for this guideline so we replace all of these with `copyright`
 	n.replaceCopyrightSymbols()
+
+	// SPDX matching guideline 7.1.1 (Bullets and Numbering)
+	// * must be after replaceCopyrightSymbols() handle overlapping case (c)
+	n.replaceBulletsAndNumbering()
 
 	// Remove HTML tags
 	n.removeHTMLTags()
@@ -218,6 +224,9 @@ func (n *NormalizationData) NormalizeText() error {
 	// To avoid the possibility of a non-match due to different spacing of words, line breaks, or paragraphs.
 	// All whitespace should be treated as a single blank space.
 	n.replaceWhitespace()
+
+	// Replace varietal word spelling. (Guideline 8.1.1)
+	n.replaceVarietalWordSpellings()
 
 	// Add Hash Digest
 	// calculate MD5 for the normalized text
@@ -373,8 +382,11 @@ func (n *NormalizationData) removeHTMLTags() {
 		i = next + i // position in the full normalized text string
 		next = i + 1 // if we continue to loop, start one char after the last hit -- also used for lookahead position
 
-		if textLen > next+len("http") && n.NormalizedText[next:next+len("http")] == "http" {
-			continue // negative lookahead.  Ignoring <http... links.
+		httpProtocol := "http"
+		httpLen := len(httpProtocol)
+		if textLen > next+httpLen && n.NormalizedText[next:next+httpLen] == httpProtocol {
+			next += httpLen
+			continue // negative lookahead.  Ignoring <http... links. Skipping ahead.
 		}
 
 		// move past contents until forbidden char or end char
@@ -385,15 +397,28 @@ func (n *NormalizationData) removeHTMLTags() {
 			}
 		}
 
-		// lookahead again to ignore >>
+		if textLen > j && n.NormalizedText[j] == '<' { // forbidden char. This is not the tag you are looking for.
+			if n.NormalizedText[j-1] == '<' { // this was a <<, so move ahead
+				j++
+			}
+			next = j + 1
+			continue
+		}
+
+		// Lookahead for >> (and skip these), otherwise append the found < link >
 		if textLen > j && n.NormalizedText[j] == '>' && (textLen <= j+1 || n.NormalizedText[j+1] != '>') {
 			next = j + 1 // if we continue to loop, start one char after the last hit -- also end match index
 			allSubmatchIndex = append(allSubmatchIndex, []int{i, next})
 		}
 	}
 
-	// remove the matches
-	n.replaceMatchesWithStringAndUpdateIndexMap(allSubmatchIndex, "")
+	// replace the < tag matches > with a non-whitespace placeholder in licenses
+	// and a simple matcher in templates
+	replacement := "♢"
+	if n.IsTemplate {
+		replacement = "<<.{0,144}?>>"
+	}
+	n.replaceMatchesWithStringAndUpdateIndexMap(allSubmatchIndex, replacement)
 }
 
 func (n *NormalizationData) replaceDashLikeCharacters() {
@@ -408,23 +433,20 @@ func (n *NormalizationData) standardizeToHTTP() {
 	n.regexpReplacePatternAndUpdateIndexMap(HTTPPatternRE, "http")
 }
 
-func (n *NormalizationData) removeBulletsAndNumbering() {
+// replaceBulletsAndNumbering removes or replaces bullets and outline numbering to avoid common mismatches
+func (n *NormalizationData) replaceBulletsAndNumbering() {
 	n.initialize() // initialize normalized text and index map if not set already
-	allSubmatchIndex := BulletsAndNumberingPatternRE.FindAllStringSubmatchIndex(n.NormalizedText, len(n.NormalizedText))
 
-	// Need to build replacement string list based on the submatches (to use the common text/indexMap update)
-	var replacements []string
-	for _, match := range allSubmatchIndex {
-		firstIndex := match[2]
-		lastIndex := match[3]
-		if firstIndex < 0 || lastIndex < 0 { // Not found submatches are -1 -1
-			replacements = append(replacements, "") // Use empty string for these
-		} else {
-			replacements = append(replacements, n.NormalizedText[firstIndex:lastIndex])
-		}
+	// NOTE: License files and license templates/patterns are handled differently.
+	// * In license files remove bullets and outline numbering to avoid mismatch.
+	// * In templates use a wildcard matcher to make bullets/numbers optional (matching replaced or not)
+	if n.IsTemplate {
+		replacement := "<<.{0,20}?>>"
+		n.regexpReplacePatternAndUpdateIndexMap(BulletsPatternRE, replacement)
+		n.regexpReplacePatternAndUpdateIndexMap(NumberingPatternRE, replacement)
+	} else {
+		n.regexpRemovePatternAndUpdateIndexMap(BulletsPatternRE)
 	}
-
-	n.replaceMatchesWithStringsAndUpdateIndexMap(allSubmatchIndex, replacements)
 }
 
 func (n *NormalizationData) reconnectSplitWords() {

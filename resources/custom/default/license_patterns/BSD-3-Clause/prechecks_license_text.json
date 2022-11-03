@@ -1,7 +1,4 @@
 {
-  "LicensePreChecks": [
-    "Redistribution"
-  ],
   "StaticBlocks": [
     "redistribution and use",
     "in source and binary forms",

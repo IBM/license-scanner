@@ -43,7 +43,7 @@ const (
 
 var (
 	Logger                 = log.NewLogger(log.INFO)
-	pointyBracketSegmentRE = regexp.MustCompile(`<<(.*?)>>`)
+	pointyBracketSegmentRE = regexp.MustCompile(` *<<(.*?)>> *`)
 	RegexUnsafePattern     = regexp.MustCompile(`([\\.*+?^${}()|[\]])`)
 	spaceTagReplacer       = strings.NewReplacer(
 		" <<", "<<",
@@ -55,8 +55,8 @@ var (
 		"<<copyright>>", "COPYRIGHT",
 	)
 	tokenReplacer = strings.NewReplacer(
-		"BEGIN_OMITABLE", " ?(?:",
-		"END_OMITABLE", " ?)?",
+		"BEGIN_OMITABLE", " *(?:",
+		"END_OMITABLE", " *)?",
 		"COPYRIGHT", ".*",
 	)
 )
@@ -639,9 +639,7 @@ func GenerateMatchingPatternFromSourceText(pp *PrimaryPatterns) (*regexp.Regexp,
 	var err error
 	pp.doOnce.Do(func() {
 		// Normalize the input text.
-		normalizedData := normalizer.NormalizationData{
-			OriginalText: pp.Text,
-		}
+		normalizedData := normalizer.NewNormalizationData(pp.Text, true)
 		err = normalizedData.NormalizeText()
 		if err == nil {
 			var re *regexp.Regexp
@@ -663,7 +661,7 @@ func GenerateRegexFromNormalizedText(normalizedText string) (*regexp.Regexp, err
 	// Replace simple tags with tokens, so we can attack the not-simple tags which might be nested in these
 	text = tagReplacer.Replace(text)
 
-	// Replace mathched <<segment>> with ` ?(?:(`+segment+`) ?)`
+	// Replace matched <<segment>> with ` ?(?:(`+segment+`) ?)`
 	// Escape regex-unsafe characters outside of tags.
 	// Then put the segments back together
 	matches := pointyBracketSegmentRE.FindAllStringSubmatchIndex(text, -1)
@@ -689,7 +687,7 @@ func GenerateRegexFromNormalizedText(normalizedText string) (*regexp.Regexp, err
 		segment := text[submatchStart:submatchEnd]
 
 		prev = end
-		segments = append(segments, ` ?(?:(`+segment+`) ?)`)
+		segments = append(segments, ` *(?:(`+segment+`) *)`)
 	}
 	if prev < len(text) {
 		segment := text[prev:]
