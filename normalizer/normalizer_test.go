@@ -5,14 +5,11 @@
 package normalizer
 
 import (
-	"encoding/hex"
 	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
-
-var FE, _ = hex.DecodeString("fe")
 
 func TestNormalizationData_NormalizeText(t *testing.T) {
 	t.Parallel()
