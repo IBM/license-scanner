@@ -12,23 +12,24 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/mrutkows/sbom-utility/log"
 	"golang.org/x/exp/slices"
 )
 
 const (
-	NoteTagPattern          = `(?i)<<note[:=].+?>>`
-	WildcardMatchingPattern = `(?i)<<match=\.\+>>`
+	NoteTagPattern          = `<<note[:=].+?>>`
+	WildcardMatchingPattern = `<<match=\.\+>>`
 
 	OptionalWildcardMatchingPattern = `<<match=\.\*>>`
 
-	ReplaceableTextPattern     = `(?i)<<(?:var;(?:name=(.+?);)?(?:original=(.*?);)?)?match=(.+?)>>`
-	BeginOptionalLinePattern   = `(?im)^<<beginOptional(?:;name=.*?)?>>`
-	BeginOptionalPattern       = `(?i)<<beginOptional(?:;name=.*?)?>>`
+	ReplaceableTextPattern     = `<<(?:var;(?:name=(.+?);)?(?:original=(.*?);)?)?match=(.+?)>>`
+	BeginOptionalLinePattern   = `(m)^<<beginoptional(?:;name=.*?)?>>`
+	BeginOptionalPattern       = `<<beginoptional(?:;name=.*?)?>>`
 	OmitableLine               = "<<omitable>>\n"
 	Omitable                   = "<<omitable>>"
-	EndOptionalPattern         = `(?i)<<endOptional>>`
+	EndOptionalPattern         = `<<endoptional>>`
 	ReplaceEndPattern          = `<</omitable>>`
 	CommentBlockOutsidePattern = `(?m)^\s*(?:/\*|-{2,3}\[=*\[)|(?:\*/|]=*])\s*$`
 	CommentBlockInsidePattern  = `(?m)^\s*[*#]{1,6}|\*{1,6}$`
@@ -112,6 +113,7 @@ type NormalizationData struct {
 	CaptureGroups  []*CaptureGroup
 	Hash           Digest
 	IsTemplate     bool
+	initializeOnce sync.Once
 }
 
 type CaptureGroup struct {
@@ -136,7 +138,6 @@ func NewNormalizationData(originalText string, isTemplate bool) *NormalizationDa
 		OriginalText: originalText,
 		IsTemplate:   isTemplate,
 	}
-	nd.initialize()
 	return &nd
 }
 
@@ -154,10 +155,6 @@ func (n *NormalizationData) NormalizeText() error {
 		return fmt.Errorf("failed to normalize data: invalid input text with control characters")
 	}
 
-	// TODO: remove excessive whitespace, prior to generating the index map.
-	// TODO: keep track of the removed sections while stripping off excessive whitespace
-	// TODO: TBD ^^^ Why bother when we will replace all whitespace with single " " later on?
-
 	// remove note tags
 	n.removeNoteTags()
 
@@ -172,9 +169,6 @@ func (n *NormalizationData) NormalizeText() error {
 
 	// Replace the optional tags with <<omitable>> and <</omitable>>. (Guideline 2.1.4)
 	n.standardizeOmitableTags()
-
-	// Convert the input text to all lower case. (Guideline 4.1.1)
-	n.NormalizedText = strings.ToLower(n.NormalizedText)
 
 	// remove odd characters, such as TM, replacement character ?, etc
 	// NOTE! Remove these before any use of regexp2 because rune chars throw off the index map
@@ -246,19 +240,19 @@ func (n *NormalizationData) NormalizeText() error {
 
 // initializeIndexMap initializes the index map based on the normalized text
 func (n *NormalizationData) initialize() {
-	// initialize the normalized text with the original text
-	if len(n.NormalizedText) == 0 {
-		n.NormalizedText = n.OriginalText
-	}
+	n.initializeOnce.Do(func() {
+		// Convert the input text to all lower case. (Guideline 4.1.1)
+		// Note: Regex patterns also assume ToLower() was already done to avoid needing case-insensitive match.
+		n.NormalizedText = strings.ToLower(n.OriginalText)
 
-	// generate an index map, to map the normalized text indices back to the respective index in the original text
-	if len(n.IndexMap) == 0 {
+		// generate an index map, to map the normalized text indices back to the respective index in the original text
+		// Note: ToLower() must be done before creating IndexMap because some chars change in length.
 		l := len(n.NormalizedText)
 		n.IndexMap = make([]int, l)
 		for i := 0; i < l; i++ {
 			n.IndexMap[i] = i
 		}
-	}
+	})
 }
 
 func (n *NormalizationData) removeNoteTags() {
@@ -522,6 +516,14 @@ func substr(text string, from int, to int) string {
 	return text[from:to]
 }
 
+// subset will do thing[from:to] or thing[from:] depending on to >= len(thing)
+func subset[T any](thing []T, from int, to int) []T {
+	if to >= len(thing) {
+		return thing[from:]
+	}
+	return thing[from:to]
+}
+
 // replaceMatchesWithStringAndUpdateIndexMap iterates over matches to:
 // * remove or replace the matched text
 // * build an updated index map
@@ -542,26 +544,26 @@ func (n *NormalizationData) replaceMatchesWithStringsAndUpdateIndexMap(allSubmat
 		replacement := replacements[i]
 
 		// copy the text and index map before (and in between) matches
-		if firstIndex > prev {
-			newText += n.NormalizedText[prev:firstIndex]
-			newIndex = append(newIndex, n.IndexMap[prev:firstIndex]...)
+		if prev < len(n.IndexMap) && firstIndex > prev {
+			newText += substr(n.NormalizedText, prev, firstIndex)
+			newIndex = append(newIndex, subset(n.IndexMap, prev, firstIndex)...)
 		}
 
-		if len(replacement) > 0 {
+		replacementLen := len(replacement)
+		if replacementLen > 0 {
 			// If a replacement string is being inserted, then we'll also insert indexes as follows:
 			// * The first element should be the first index in the replaced section.
 			// * The last element should be the last index in the replaced section. (Unless there is only a single char)
 			// * Middle elements should be -1, for 'replaced'. A match starting/ending on these indices is invalid.
-			replacementIndex := make([]int, len(replacement))
-			for c := range replacement {
-				switch c {
-				case 0:
-					replacementIndex[c] = n.IndexMap[firstIndex]
-				case len(replacement) - 1:
-					replacementIndex[c] = n.IndexMap[lastIndex-1]
-				default:
-					replacementIndex[c] = -1
-				}
+			replacementIndex := make([]int, replacementLen)
+			for i := 0; i < cap(replacementIndex); i++ {
+				replacementIndex[i] = -1
+			}
+			if firstIndex < len(n.IndexMap) {
+				replacementIndex[0] = n.IndexMap[firstIndex]
+			}
+			if replacementLen > 1 && lastIndex-1 < len(n.IndexMap) {
+				replacementIndex[replacementLen-1] = n.IndexMap[lastIndex-1]
 			}
 
 			// Append the replacement text and indexes
