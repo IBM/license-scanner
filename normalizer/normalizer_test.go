@@ -84,6 +84,24 @@ func TestNormalizationData_NormalizeText(t *testing.T) {
 				NormalizedText: "runes in commissariat à l'énergie atomique then htmltag <<omitable>>x♢z<</omitable>> .",
 			},
 		},
+		{
+			name: "Character that changes length should not cause out-of-bounds with indexMap",
+			n: &NormalizationData{
+				OriginalText: "\n\xfe\nx\n",
+			},
+			e: &NormalizationData{
+				NormalizedText: "x",
+			},
+		},
+		{
+			name: "Character that changes length should not cause out-of-bounds with indexMap (char 0)",
+			n: &NormalizationData{
+				OriginalText: "\xfe\nx\n",
+			},
+			e: &NormalizationData{
+				NormalizedText: "x",
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -109,7 +127,7 @@ func TestNormalizationData_NormalizeText_removeNoteTag(t *testing.T) {
 			OriginalText: "Something to note about <<note: Please be careful with this license>>",
 		},
 		e: &NormalizationData{
-			NormalizedText: "Something to note about  ",
+			NormalizedText: "something to note about  ",
 		},
 	}}
 
@@ -186,7 +204,7 @@ func TestNormalizationData_NormalizeText_CaptureReplaceableTextSections(t *testi
 		e: &NormalizationData{
 			CaptureGroups: []*CaptureGroup{{
 				GroupNumber: 1,
-				Name:        "replaceableSection",
+				Name:        "replaceablesection",
 				Original:    "some text",
 				Matches:     ".+?",
 			}},
@@ -622,7 +640,7 @@ func TestNormalizationData_NormalizeText_removeOddCharacters(t *testing.T) {
 			OriginalText: fmt.Sprintf("Trademark \u0099  Not sign ¬"),
 		},
 		e: &NormalizationData{
-			NormalizedText: fmt.Sprintf("Trademark    Not sign  "),
+			NormalizedText: fmt.Sprintf("trademark    not sign  "),
 		},
 	}}
 
@@ -646,7 +664,7 @@ func TestNormalizationData_NormalizeText_replaceWhitespace(t *testing.T) {
 			OriginalText: fmt.Sprintf("\nThis text   has \tsome \nwhitespace.\n"),
 		},
 		e: &NormalizationData{
-			NormalizedText: fmt.Sprintf("This text has some whitespace."),
+			NormalizedText: fmt.Sprintf("this text has some whitespace."),
 		},
 	}}
 
@@ -672,7 +690,7 @@ func TestNormalizationData_NormalizeText_Replacement_Words(t *testing.T) {
 				OriginalText: "This licence license organisation organisation to redistributions redistribution",
 			},
 			e: &NormalizationData{
-				NormalizedText: "This license license organization organization to redistribution redistribution",
+				NormalizedText: "this license license organization organization to redistribution redistribution",
 			},
 		},
 		{
@@ -680,7 +698,7 @@ func TestNormalizationData_NormalizeText_Replacement_Words(t *testing.T) {
 				OriginalText: "This license organisation to redistribution",
 			},
 			e: &NormalizationData{
-				NormalizedText: "This license organization to redistribution",
+				NormalizedText: "this license organization to redistribution",
 			},
 		},
 		{
@@ -688,7 +706,7 @@ func TestNormalizationData_NormalizeText_Replacement_Words(t *testing.T) {
 				OriginalText: "This licence organization to redistributions ",
 			},
 			e: &NormalizationData{
-				NormalizedText: "This license organization to redistribution ",
+				NormalizedText: "this license organization to redistribution ",
 			},
 		},
 	}
