@@ -9,16 +9,16 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mrutkows/sbom-utility/log"
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
-	"github.com/spf13/viper"
-
 	"github.com/IBM/license-scanner/configurer"
 	"github.com/IBM/license-scanner/debugger"
 	"github.com/IBM/license-scanner/identifier"
 	"github.com/IBM/license-scanner/importer"
 	"github.com/IBM/license-scanner/licenses"
+
+	"github.com/mrutkows/sbom-utility/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -86,10 +86,9 @@ Please give us feedback at: https://github.com/IBM/license-scanner/issues
 			} else if cfg.GetBool(configurer.ListFlag) {
 				return listLicenses(cfg)
 			} else if cfg.GetString(configurer.AddAllFlag) != "" {
-				return importer.AddAllSPDXTemplates(cfg)
-			} else if cfg.GetString(configurer.AddPatternFlag) != "" {
-				// Otherwise, if addPattern was requested, attempt to add that pattern.
-				return errors.New("add_pattern_from_spdx() is NOT-IMPLEMENTED")
+				return importer.Import(cfg)
+			} else if cfg.GetString(configurer.UpdateAllFlag) != "" {
+				return importer.Update(cfg)
 			} else {
 				// Otherwise, terminate with an error.
 				return errors.New("you must provide a file path")
