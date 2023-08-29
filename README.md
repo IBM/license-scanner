@@ -1,3 +1,10 @@
+# WARNING: license-scanner has moved to: https://github.com/CycloneDX/license-scanner
+
+> The newer CycloneDX version is maintained by OWASP CycloneDX maintainers (including IBM). This old IBM version is no longer maintained.
+> This repository will not be updated. The repository will be kept available in read-only mode.
+
+---
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)](LICENSE)
 
 # license-scanner
